@@ -8,6 +8,7 @@ import { getClipDetail } from '@/lib/chzzk-api';
 export default function Player() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const isPlayingRef = useRef(false);
 
   const {
     playlist,
@@ -24,27 +25,41 @@ export default function Player() {
 
   const currentClip = playlist[currentIndex];
 
-  // 현재 클립의 HLS URL 가져오기
+  // isPlaying 상태를 ref에 동기화
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  // 현재 클립의 재생 URL 가져오기
   useEffect(() => {
     if (!currentClip) return;
+
+    // currentVideoUrl이 없을 때만 fetch
+    if (currentVideoUrl) return;
+
+    let cancelled = false;
 
     const fetchVideoUrl = async () => {
       try {
         const detail = await getClipDetail(currentClip.clipUID, currentClip.videoId);
-        if (detail.videoUrl) {
+        if (!cancelled && detail.videoUrl) {
           setCurrentVideoUrl(detail.videoUrl);
         }
       } catch (error) {
         console.error('Failed to fetch video URL:', error);
         // 에러 발생 시 다음 클립으로 이동
-        playNext();
+        if (!cancelled) {
+          playNext();
+        }
       }
     };
 
-    if (!currentVideoUrl) {
-      fetchVideoUrl();
-    }
-  }, [currentClip, currentVideoUrl, setCurrentVideoUrl, playNext]);
+    fetchVideoUrl();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentClip?.clipUID, currentVideoUrl, setCurrentVideoUrl, playNext]);
 
   // 비디오 초기화 및 재생 (HLS 또는 MP4)
   useEffect(() => {
@@ -61,6 +76,13 @@ export default function Player() {
     const urlPath = currentVideoUrl.split('?')[0];
     const isHls = urlPath.endsWith('.m3u8');
 
+    const handleCanPlay = () => {
+      // ref를 사용하여 최신 isPlaying 상태 확인
+      if (isPlayingRef.current) {
+        video.play().catch((e) => console.log('Autoplay blocked:', e));
+      }
+    };
+
     if (isHls && Hls.isSupported()) {
       // HLS 스트림인 경우
       const hls = new Hls({
@@ -74,11 +96,7 @@ export default function Player() {
       hls.loadSource(currentVideoUrl);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (isPlaying) {
-          video.play().catch((e) => console.log('Autoplay blocked:', e));
-        }
-      });
+      hls.on(Hls.Events.MANIFEST_PARSED, handleCanPlay);
 
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
@@ -93,34 +111,22 @@ export default function Player() {
     } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari 네이티브 HLS 지원
       video.src = currentVideoUrl;
-      if (isPlaying) {
-        video.play().catch((e) => console.log('Autoplay blocked:', e));
-      }
+      video.addEventListener('canplay', handleCanPlay, { once: true });
     } else {
       // MP4 등 일반 비디오 파일
       video.src = currentVideoUrl;
       video.load();
-
-      const handleCanPlay = () => {
-        if (isPlaying) {
-          video.play().catch((e) => console.log('Autoplay blocked:', e));
-        }
-      };
-
       video.addEventListener('canplay', handleCanPlay, { once: true });
-
-      return () => {
-        video.removeEventListener('canplay', handleCanPlay);
-      };
     }
 
     return () => {
+      video.removeEventListener('canplay', handleCanPlay);
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [currentVideoUrl, isPlaying, playNext]);
+  }, [currentVideoUrl, playNext]);
 
   // 볼륨 및 음소거 처리
   useEffect(() => {
@@ -158,7 +164,13 @@ export default function Player() {
 
   // 재생 상태 동기화
   const handlePlay = () => setIsPlaying(true);
-  const handlePause = () => setIsPlaying(false);
+  const handlePause = useCallback(() => {
+    const video = videoRef.current;
+    // 비디오가 끝나서 일시정지된 경우는 isPlaying을 유지 (연속 재생을 위해)
+    if (video && !video.ended) {
+      setIsPlaying(false);
+    }
+  }, [setIsPlaying]);
 
   if (!currentClip) {
     return (
