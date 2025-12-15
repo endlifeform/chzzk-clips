@@ -12,6 +12,7 @@ import Player from '@/components/Player';
 import PlayerControls from '@/components/PlayerControls';
 import Playlist from '@/components/Playlist';
 
+type MainTab = 'search' | 'player';
 type MobileTab = 'search' | 'groups' | 'player';
 
 export default function Home() {
@@ -19,6 +20,7 @@ export default function Home() {
     id: string;
     name: string;
   } | null>(null);
+  const [mainTab, setMainTab] = useState<MainTab>('search');
   const [mobileTab, setMobileTab] = useState<MobileTab>('search');
 
   const { loadGroups, groups, selectedGroupId, selectGroup } = useGroupStore();
@@ -43,9 +45,25 @@ export default function Home() {
   useEffect(() => {
     if (selectedGroupId) {
       setSelectedChannel(null);
-      setMobileTab('search'); // 그룹 선택 시 콘텐츠 보기
+      setMobileTab('search');
+      setMainTab('search');
     }
   }, [selectedGroupId]);
+
+  // 재생 시작 시 플레이어 탭으로 자동 전환
+  const handlePlay = (clips: GroupClip[], startIndex: number) => {
+    setPlaylist(clips, startIndex);
+    setMainTab('player');
+    setMobileTab('player');
+  };
+
+  // playlist가 변경되면 (ClipList에서 재생 시) 플레이어 탭으로 전환
+  useEffect(() => {
+    if (playlist.length > 0) {
+      setMainTab('player');
+      setMobileTab('player');
+    }
+  }, [playlist]);
 
   // 선택된 그룹 가져오기
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
@@ -101,13 +119,7 @@ export default function Home() {
                     channelName={selectedChannel.name}
                   />
                 ) : selectedGroup ? (
-                  <SelectedGroupView
-                    group={selectedGroup}
-                    onPlay={(clips, startIndex) => {
-                      setPlaylist(clips, startIndex);
-                      setMobileTab('player');
-                    }}
-                  />
+                  <SelectedGroupView group={selectedGroup} onPlay={handlePlay} />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-gray-400">
                     <SearchIcon className="w-12 h-12 mb-3 opacity-50" />
@@ -148,35 +160,92 @@ export default function Home() {
           )}
         </div>
 
-        {/* 데스크톱: 기존 레이아웃 */}
+        {/* 데스크톱: 탭 기반 레이아웃 */}
         <div className="hidden lg:flex lg:flex-1 lg:flex-col overflow-hidden">
-          {/* 상단 - 채널 검색 */}
-          <div className="p-4 border-b border-gray-700">
-            <ChannelSearch onSelectChannel={handleSelectChannel} />
+          {/* 상단 탭 네비게이션 */}
+          <div className="flex items-center border-b border-gray-700 bg-gray-800">
+            <button
+              onClick={() => setMainTab('search')}
+              className={`px-6 py-3 font-medium transition-colors border-b-2 ${
+                mainTab === 'search'
+                  ? 'text-blue-400 border-blue-400'
+                  : 'text-gray-400 border-transparent hover:text-white'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <SearchIcon className="w-5 h-5" />
+                검색
+              </span>
+            </button>
+            <button
+              onClick={() => setMainTab('player')}
+              className={`px-6 py-3 font-medium transition-colors border-b-2 ${
+                mainTab === 'player'
+                  ? 'text-blue-400 border-blue-400'
+                  : 'text-gray-400 border-transparent hover:text-white'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <PlayCircleIcon className="w-5 h-5" />
+                플레이어
+                {playlist.length > 0 && (
+                  <span className="px-1.5 py-0.5 text-xs bg-blue-600 rounded-full">
+                    {playlist.length}
+                  </span>
+                )}
+              </span>
+            </button>
           </div>
 
-          {/* 콘텐츠 영역 */}
-          <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-4">
-              {selectedChannel ? (
-                <ClipList
-                  channelId={selectedChannel.id}
-                  channelName={selectedChannel.name}
-                />
-              ) : selectedGroup ? (
-                <SelectedGroupView
-                  group={selectedGroup}
-                  onPlay={(clips, startIndex) => setPlaylist(clips, startIndex)}
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                  <SearchIcon className="w-16 h-16 mb-4 opacity-50" />
-                  <p className="text-lg">채널을 검색하거나</p>
-                  <p className="text-lg">그룹을 선택하세요</p>
-                </div>
-              )}
+          {/* 검색 탭 콘텐츠 */}
+          {mainTab === 'search' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* 채널 검색 */}
+              <div className="p-4 border-b border-gray-700">
+                <ChannelSearch onSelectChannel={handleSelectChannel} />
+              </div>
+
+              {/* 클립 목록 */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {selectedChannel ? (
+                  <ClipList
+                    channelId={selectedChannel.id}
+                    channelName={selectedChannel.name}
+                  />
+                ) : selectedGroup ? (
+                  <SelectedGroupView group={selectedGroup} onPlay={handlePlay} />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                    <SearchIcon className="w-16 h-16 mb-4 opacity-50" />
+                    <p className="text-lg">채널을 검색하거나</p>
+                    <p className="text-lg">그룹을 선택하세요</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* 플레이어 탭 콘텐츠 */}
+          {mainTab === 'player' && (
+            <div className="flex-1 flex overflow-hidden">
+              {/* 플레이어 영역 */}
+              <div className="flex-1 flex flex-col p-4 overflow-hidden">
+                {/* 큰 플레이어 */}
+                <div className="max-w-4xl w-full mx-auto">
+                  <Player />
+                </div>
+                {/* 플레이어 컨트롤 */}
+                <div className="max-w-4xl w-full mx-auto mt-4">
+                  <PlayerControls />
+                </div>
+              </div>
+
+              {/* 재생목록 사이드 */}
+              <div className="w-80 border-l border-gray-700 flex flex-col overflow-hidden">
+                <Playlist />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 모바일 미니 플레이어 (플레이어 탭이 아닐 때) */}
@@ -230,23 +299,6 @@ export default function Home() {
         </nav>
       </main>
 
-      {/* 오른쪽 사이드바 - 플레이어 & 재생목록 (데스크톱만) */}
-      <aside className="hidden lg:flex w-80 bg-gray-800 border-l border-gray-700 flex-col">
-        {/* 플레이어 */}
-        <div className="p-4 border-b border-gray-700">
-          <Player />
-        </div>
-
-        {/* 플레이어 컨트롤 */}
-        <div className="p-4 border-b border-gray-700">
-          <PlayerControls />
-        </div>
-
-        {/* 재생 목록 */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <Playlist />
-        </div>
-      </aside>
     </div>
   );
 }
