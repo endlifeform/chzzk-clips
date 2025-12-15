@@ -74,6 +74,16 @@ export default function ClipCard({
               <PlusIcon />
             </button>
           )}
+          <a
+            href={`https://chzzk.naver.com/clips/${clip.clipUID}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors"
+            title="공식 페이지에서 보기"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLinkIcon />
+          </a>
         </div>
 
         {/* 선택 체크박스 */}
@@ -124,6 +134,14 @@ function CheckIcon() {
   return (
     <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
       <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" />
     </svg>
   );
 }

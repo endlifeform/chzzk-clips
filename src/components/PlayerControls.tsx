@@ -38,10 +38,23 @@ export default function PlayerControls() {
       {/* 현재 재생 중인 클립 정보 */}
       {currentClip && (
         <div className="mb-4">
-          <h3 className="font-medium text-white truncate">{currentClip.title}</h3>
-          <p className="text-sm text-gray-400">
-            {currentClip.channelName} · {formatTime(currentClip.duration)}
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-white truncate">{currentClip.title}</h3>
+              <p className="text-sm text-gray-400">
+                {currentClip.channelName} · {formatTime(currentClip.duration)}
+              </p>
+            </div>
+            <a
+              href={`https://chzzk.naver.com/clips/${currentClip.clipUID}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 text-gray-400 hover:text-green-400 transition-colors flex-shrink-0"
+              title="공식 페이지에서 보기 (조회수 반영)"
+            >
+              <ExternalLinkIcon />
+            </a>
+          </div>
         </div>
       )}
 
@@ -198,6 +211,14 @@ function VolumeMuteIcon() {
   return (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
       <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z" />
     </svg>
   );
 }
