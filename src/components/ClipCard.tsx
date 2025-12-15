@@ -45,7 +45,7 @@ export default function ClipCard({
       <div className="relative aspect-video">
         <img
           src={clip.thumbnailImageUrl}
-          alt={clip.videoTitle}
+          alt={clip.clipTitle}
           className="w-full h-full object-cover"
         />
 
@@ -94,7 +94,7 @@ export default function ClipCard({
       {/* 정보 */}
       <div className="p-3">
         <h3 className="font-medium text-white text-sm line-clamp-2 mb-1">
-          {clip.videoTitle}
+          {clip.clipTitle}
         </h3>
         <p className="text-gray-400 text-xs">
           조회수 {formatCount(clip.readCount)}회

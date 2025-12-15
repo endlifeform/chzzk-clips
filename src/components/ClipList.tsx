@@ -15,7 +15,7 @@ interface ClipListProps {
 
 export default function ClipList({ channelId, channelName }: ClipListProps) {
   const [clips, setClips] = useState<Clip[]>([]);
-  const [selectedClips, setSelectedClips] = useState<Set<number>>(new Set());
+  const [selectedClips, setSelectedClips] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -85,13 +85,13 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
   };
 
   // 클립 선택 토글
-  const toggleSelect = (videoNo: number) => {
+  const toggleSelect = (clipUID: string) => {
     setSelectedClips((prev) => {
       const next = new Set(prev);
-      if (next.has(videoNo)) {
-        next.delete(videoNo);
+      if (next.has(clipUID)) {
+        next.delete(clipUID);
       } else {
-        next.add(videoNo);
+        next.add(clipUID);
       }
       return next;
     });
@@ -102,16 +102,16 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
     if (selectedClips.size === clips.length) {
       setSelectedClips(new Set());
     } else {
-      setSelectedClips(new Set(clips.map((c) => c.videoNo)));
+      setSelectedClips(new Set(clips.map((c) => c.clipUID)));
     }
   };
 
   // 선택된 클립을 그룹에 추가
   const handleAddToGroup = async (group: Group) => {
-    const selectedClipsList = clips.filter((c) => selectedClips.has(c.videoNo));
+    const selectedClipsList = clips.filter((c) => selectedClips.has(c.clipUID));
 
     for (const clip of selectedClipsList) {
-      await addClipToGroup(group.id, clip);
+      await addClipToGroup(group.id, clip, channelName);
     }
 
     setSelectedClips(new Set());
@@ -120,15 +120,15 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
 
   // 클립 바로 재생
   const handlePlay = (clip: Clip) => {
-    const groupClip = clipToGroupClip(clip);
+    const groupClip = clipToGroupClip(clip, channelName);
     setPlaylist([groupClip], 0);
   };
 
   // 선택된 클립 모두 재생
   const handlePlaySelected = () => {
     const selectedClipsList = clips
-      .filter((c) => selectedClips.has(c.videoNo))
-      .map((c, i) => clipToGroupClip(c, i));
+      .filter((c) => selectedClips.has(c.clipUID))
+      .map((c, i) => clipToGroupClip(c, channelName, i));
 
     if (selectedClipsList.length > 0) {
       setPlaylist(selectedClipsList, 0);
@@ -206,13 +206,13 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {clips.map((clip) => (
           <ClipCard
-            key={clip.videoNo}
+            key={clip.clipUID}
             clip={clip}
-            isSelected={selectedClips.has(clip.videoNo)}
-            onSelect={() => toggleSelect(clip.videoNo)}
+            isSelected={selectedClips.has(clip.clipUID)}
+            onSelect={() => toggleSelect(clip.clipUID)}
             onPlay={() => handlePlay(clip)}
             onAddToGroup={() => {
-              setSelectedClips(new Set([clip.videoNo]));
+              setSelectedClips(new Set([clip.clipUID]));
               setShowGroupModal(true);
             }}
           />

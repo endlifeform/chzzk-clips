@@ -16,43 +16,45 @@ export interface Channel {
   openLive: boolean;
 }
 
-// 클립/비디오 정보
+// 클립 정보 (새 API 구조)
 export interface Clip {
-  videoNo: number;
+  clipUID: string;
   videoId: string;
-  videoTitle: string;
-  videoType: 'CLIP' | 'REPLAY';
-  publishDate: string;
+  clipTitle: string;
+  ownerChannelId: string;
   thumbnailImageUrl: string;
-  trailerUrl: string | null;
-  duration: number;
-  readCount: number;
-  publishDateAt: number;
   categoryType: string | null;
-  videoCategory: string | null;
-  videoCategoryValue: string | null;
-  channel: {
+  clipCategory: string | null;
+  duration: number;
+  adult: boolean;
+  createdDate: string;
+  readCount: number;
+  blindType: string | null;
+}
+
+// 클립 상세 정보 (HLS URL 포함)
+export interface ClipDetail {
+  clipUID: string;
+  videoId: string;
+  clipTitle: string;
+  thumbnailImageUrl: string;
+  duration: number;
+  adult: boolean;
+  videoUrl?: string;
+  clipPlaybackUrl?: string;
+  ownerChannel?: {
     channelId: string;
     channelName: string;
     channelImageUrl: string | null;
   };
 }
 
-// 클립 상세 정보 (HLS URL 포함)
-export interface ClipDetail extends Clip {
-  videoUrl: string;
-  adult: boolean;
-  clipActive: boolean;
-  livePv: number;
-  liveRewindPlaybackJson: string | null;
-}
-
-// 비디오 목록 응답
-export interface VideoListResponse {
+// 클립 목록 응답
+export interface ClipListResponse {
   size: number;
   page: {
     next: {
-      concatContent: string | null;
+      clipUID: string;
     } | null;
   };
   data: Clip[];
@@ -70,7 +72,8 @@ export interface Group {
 // 그룹에 저장된 클립 정보
 export interface GroupClip {
   id: string;
-  videoNo: number;
+  clipUID: string;
+  videoId: string;
   title: string;
   thumbnailUrl: string;
   duration: number;

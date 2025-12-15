@@ -30,7 +30,7 @@ export default function Player() {
 
     const fetchVideoUrl = async () => {
       try {
-        const detail = await getClipDetail(currentClip.videoNo);
+        const detail = await getClipDetail(currentClip.clipUID, currentClip.videoId);
         if (detail.videoUrl) {
           setCurrentVideoUrl(detail.videoUrl);
         }
@@ -46,7 +46,7 @@ export default function Player() {
     }
   }, [currentClip, currentVideoUrl, setCurrentVideoUrl, playNext]);
 
-  // HLS 초기화 및 재생
+  // 비디오 초기화 및 재생 (HLS 또는 MP4)
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentVideoUrl) return;
@@ -57,7 +57,12 @@ export default function Player() {
       hlsRef.current = null;
     }
 
-    if (Hls.isSupported()) {
+    // URL에서 확장자 확인 (쿼리 파라미터 제외)
+    const urlPath = currentVideoUrl.split('?')[0];
+    const isHls = urlPath.endsWith('.m3u8');
+
+    if (isHls && Hls.isSupported()) {
+      // HLS 스트림인 경우
       const hls = new Hls({
         maxBufferLength: 30,
         maxMaxBufferLength: 600,
@@ -85,12 +90,28 @@ export default function Player() {
           }
         }
       });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari 네이티브 HLS 지원
       video.src = currentVideoUrl;
       if (isPlaying) {
         video.play().catch((e) => console.log('Autoplay blocked:', e));
       }
+    } else {
+      // MP4 등 일반 비디오 파일
+      video.src = currentVideoUrl;
+      video.load();
+
+      const handleCanPlay = () => {
+        if (isPlaying) {
+          video.play().catch((e) => console.log('Autoplay blocked:', e));
+        }
+      };
+
+      video.addEventListener('canplay', handleCanPlay, { once: true });
+
+      return () => {
+        video.removeEventListener('canplay', handleCanPlay);
+      };
     }
 
     return () => {

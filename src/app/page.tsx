@@ -129,7 +129,8 @@ export default function Home() {
 // 선택된 그룹 표시 컴포넌트
 interface GroupClip {
   id: string;
-  videoNo: number;
+  clipUID: string;
+  videoId: string;
   title: string;
   thumbnailUrl: string;
   duration: number;

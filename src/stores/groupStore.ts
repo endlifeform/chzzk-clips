@@ -20,7 +20,7 @@ interface GroupState {
   deleteGroup: (id: string) => Promise<void>;
   updateGroupTitle: (id: string, title: string) => Promise<void>;
   selectGroup: (id: string | null) => void;
-  addClipToGroup: (groupId: string, clip: Clip) => Promise<void>;
+  addClipToGroup: (groupId: string, clip: Clip, channelName: string) => Promise<void>;
   removeClipFromGroup: (groupId: string, clipId: string) => Promise<void>;
   reorderClips: (groupId: string, clips: GroupClip[]) => Promise<void>;
   getSelectedGroup: () => Group | null;
@@ -88,7 +88,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     set({ selectedGroupId: id });
   },
 
-  addClipToGroup: async (groupId, clip) => {
+  addClipToGroup: async (groupId, clip, channelName) => {
     const storage = getStorage();
     const { groups } = get();
     const group = groups.find((g) => g.id === groupId);
@@ -98,11 +98,11 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     }
 
     // 중복 체크
-    if (group.clips.some((c) => c.videoNo === clip.videoNo)) {
+    if (group.clips.some((c) => c.clipUID === clip.clipUID)) {
       return;
     }
 
-    const groupClip = clipToGroupClip(clip, group.clips.length);
+    const groupClip = clipToGroupClip(clip, channelName, group.clips.length);
     await storage.addClipToGroup(groupId, groupClip);
 
     set((state) => ({

@@ -70,7 +70,7 @@ class LocalStorageService implements IStorageService {
     }
 
     // 중복 체크
-    const exists = group.clips.some((c) => c.videoNo === clip.videoNo);
+    const exists = group.clips.some((c) => c.clipUID === clip.clipUID);
     if (exists) {
       return;
     }
@@ -136,25 +136,25 @@ export function createNewGroup(title: string): Group {
 // 유틸리티: 클립을 GroupClip으로 변환
 export function clipToGroupClip(
   clip: {
-    videoNo: number;
-    videoTitle: string;
+    clipUID: string;
+    videoId: string;
+    clipTitle: string;
     thumbnailImageUrl: string;
     duration: number;
-    channel: {
-      channelName: string;
-      channelId: string;
-    };
+    ownerChannelId: string;
   },
+  channelName: string,
   orderIndex: number = 0
 ): GroupClip {
   return {
     id: crypto.randomUUID(),
-    videoNo: clip.videoNo,
-    title: clip.videoTitle,
+    clipUID: clip.clipUID,
+    videoId: clip.videoId,
+    title: clip.clipTitle,
     thumbnailUrl: clip.thumbnailImageUrl,
     duration: clip.duration,
-    channelName: clip.channel.channelName,
-    channelId: clip.channel.channelId,
+    channelName: channelName,
+    channelId: clip.ownerChannelId,
     orderIndex,
   };
 }
