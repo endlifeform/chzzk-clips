@@ -12,13 +12,17 @@ import Player from '@/components/Player';
 import PlayerControls from '@/components/PlayerControls';
 import Playlist from '@/components/Playlist';
 
+type MobileTab = 'search' | 'groups' | 'player';
+
 export default function Home() {
   const [selectedChannel, setSelectedChannel] = useState<{
     id: string;
     name: string;
   } | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobileTab>('search');
 
   const { loadGroups, groups, selectedGroupId, selectGroup } = useGroupStore();
+  const { playlist, currentIndex } = usePlayerStore();
   const { setPlaylist } = usePlayerStore();
 
   // 키보드 단축키 활성화
@@ -35,20 +39,22 @@ export default function Home() {
     selectGroup(null);
   };
 
-  // 그룹 선택 시 채널 선택 해제
+  // 그룹 선택 시 채널 선택 해제 및 검색 탭으로 이동
   useEffect(() => {
     if (selectedGroupId) {
       setSelectedChannel(null);
+      setMobileTab('search'); // 그룹 선택 시 콘텐츠 보기
     }
   }, [selectedGroupId]);
 
   // 선택된 그룹 가져오기
   const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+  const currentClip = playlist[currentIndex];
 
   return (
-    <div className="min-h-screen flex">
-      {/* 왼쪽 사이드바 - 그룹 관리 */}
-      <aside className="w-72 bg-gray-800 border-r border-gray-700 flex flex-col">
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* 왼쪽 사이드바 - 그룹 관리 (데스크톱만) */}
+      <aside className="hidden lg:flex w-72 bg-gray-800 border-r border-gray-700 flex-col">
         {/* 로고 */}
         <div className="p-4 border-b border-gray-700">
           <h1 className="text-xl font-bold text-white">클립 플레이어</h1>
@@ -75,38 +81,157 @@ export default function Home() {
 
       {/* 메인 콘텐츠 영역 */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* 상단 - 채널 검색 */}
-        <div className="p-4 border-b border-gray-700">
-          <ChannelSearch onSelectChannel={handleSelectChannel} />
+        {/* 모바일 헤더 */}
+        <div className="lg:hidden p-3 border-b border-gray-700 bg-gray-800">
+          <h1 className="text-lg font-bold text-white text-center">클립 플레이어</h1>
         </div>
 
-        {/* 콘텐츠 영역 */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* 클립 목록 / 플레이어 영역 */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {selectedChannel ? (
-              <ClipList
-                channelId={selectedChannel.id}
-                channelName={selectedChannel.name}
-              />
-            ) : selectedGroup ? (
-              <SelectedGroupView
-                group={selectedGroup}
-                onPlay={(clips, startIndex) => setPlaylist(clips, startIndex)}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                <SearchIcon className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-lg">채널을 검색하거나</p>
-                <p className="text-lg">그룹을 선택하세요</p>
+        {/* 모바일: 탭별 콘텐츠 */}
+        <div className="flex-1 flex flex-col overflow-hidden lg:hidden">
+          {/* 검색 탭 */}
+          {mobileTab === 'search' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="p-3 border-b border-gray-700">
+                <ChannelSearch onSelectChannel={handleSelectChannel} />
               </div>
-            )}
+              <div className="flex-1 overflow-y-auto p-3">
+                {selectedChannel ? (
+                  <ClipList
+                    channelId={selectedChannel.id}
+                    channelName={selectedChannel.name}
+                  />
+                ) : selectedGroup ? (
+                  <SelectedGroupView
+                    group={selectedGroup}
+                    onPlay={(clips, startIndex) => {
+                      setPlaylist(clips, startIndex);
+                      setMobileTab('player');
+                    }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                    <SearchIcon className="w-12 h-12 mb-3 opacity-50" />
+                    <p>채널을 검색하거나</p>
+                    <p>그룹을 선택하세요</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 그룹 탭 */}
+          {mobileTab === 'groups' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="p-3 border-b border-gray-700">
+                <GroupManager />
+              </div>
+              <div className="flex-1 overflow-y-auto p-3">
+                <h2 className="text-sm font-medium text-gray-400 mb-3">내 그룹</h2>
+                <GroupList />
+              </div>
+            </div>
+          )}
+
+          {/* 플레이어 탭 */}
+          {mobileTab === 'player' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="p-3 border-b border-gray-700">
+                <Player />
+              </div>
+              <div className="p-3 border-b border-gray-700">
+                <PlayerControls />
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <Playlist />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 데스크톱: 기존 레이아웃 */}
+        <div className="hidden lg:flex lg:flex-1 lg:flex-col overflow-hidden">
+          {/* 상단 - 채널 검색 */}
+          <div className="p-4 border-b border-gray-700">
+            <ChannelSearch onSelectChannel={handleSelectChannel} />
+          </div>
+
+          {/* 콘텐츠 영역 */}
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-4">
+              {selectedChannel ? (
+                <ClipList
+                  channelId={selectedChannel.id}
+                  channelName={selectedChannel.name}
+                />
+              ) : selectedGroup ? (
+                <SelectedGroupView
+                  group={selectedGroup}
+                  onPlay={(clips, startIndex) => setPlaylist(clips, startIndex)}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                  <SearchIcon className="w-16 h-16 mb-4 opacity-50" />
+                  <p className="text-lg">채널을 검색하거나</p>
+                  <p className="text-lg">그룹을 선택하세요</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* 모바일 미니 플레이어 (플레이어 탭이 아닐 때) */}
+        {mobileTab !== 'player' && currentClip && (
+          <div
+            className="lg:hidden p-2 bg-gray-800 border-t border-gray-700 flex items-center gap-3 cursor-pointer"
+            onClick={() => setMobileTab('player')}
+          >
+            <img
+              src={currentClip.thumbnailUrl}
+              alt={currentClip.title}
+              className="w-12 h-8 object-cover rounded"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-white truncate">{currentClip.title}</p>
+              <p className="text-xs text-gray-400 truncate">{currentClip.channelName}</p>
+            </div>
+            <MiniPlayButton />
+          </div>
+        )}
+
+        {/* 모바일 하단 탭 네비게이션 */}
+        <nav className="lg:hidden flex border-t border-gray-700 bg-gray-800">
+          <button
+            onClick={() => setMobileTab('search')}
+            className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
+              mobileTab === 'search' ? 'text-blue-400' : 'text-gray-400'
+            }`}
+          >
+            <SearchIcon className="w-5 h-5" />
+            <span className="text-xs">검색</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('groups')}
+            className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
+              mobileTab === 'groups' ? 'text-blue-400' : 'text-gray-400'
+            }`}
+          >
+            <FolderIcon className="w-5 h-5" />
+            <span className="text-xs">그룹</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('player')}
+            className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
+              mobileTab === 'player' ? 'text-blue-400' : 'text-gray-400'
+            }`}
+          >
+            <PlayCircleIcon className="w-5 h-5" />
+            <span className="text-xs">플레이어</span>
+          </button>
+        </nav>
       </main>
 
-      {/* 오른쪽 사이드바 - 플레이어 & 재생목록 */}
-      <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
+      {/* 오른쪽 사이드바 - 플레이어 & 재생목록 (데스크톱만) */}
+      <aside className="hidden lg:flex w-80 bg-gray-800 border-l border-gray-700 flex-col">
         {/* 플레이어 */}
         <div className="p-4 border-b border-gray-700">
           <Player />
@@ -123,6 +248,31 @@ export default function Home() {
         </div>
       </aside>
     </div>
+  );
+}
+
+// 미니 플레이어 재생 버튼
+function MiniPlayButton() {
+  const { isPlaying, setIsPlaying } = usePlayerStore();
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        setIsPlaying(!isPlaying);
+      }}
+      className="p-2 text-white"
+    >
+      {isPlaying ? (
+        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+        </svg>
+      ) : (
+        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      )}
+    </button>
   );
 }
 
@@ -158,12 +308,12 @@ function SelectedGroupView({ group, onPlay }: SelectedGroupViewProps) {
   return (
     <div className="space-y-4">
       {/* 그룹 헤더 */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-white">{group.title}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold text-white truncate">{group.title}</h2>
         <button
           onClick={handlePlayAll}
           disabled={group.clips.length === 0}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
         >
           전체 재생
         </button>
@@ -176,7 +326,7 @@ function SelectedGroupView({ group, onPlay }: SelectedGroupViewProps) {
           <p className="text-sm mt-2">채널에서 클립을 검색하여 추가하세요.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {group.clips.map((clip, index) => (
             <div
               key={clip.id}
@@ -189,12 +339,12 @@ function SelectedGroupView({ group, onPlay }: SelectedGroupViewProps) {
                   alt={clip.title}
                   className="w-full h-full object-cover"
                 />
-                <span className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 text-white text-xs rounded">
+                <span className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 px-1 py-0.5 bg-black/80 text-white text-xs rounded">
                   {formatDuration(clip.duration)}
                 </span>
               </div>
-              <div className="p-3">
-                <p className="text-sm text-white truncate">{clip.title}</p>
+              <div className="p-2 sm:p-3">
+                <p className="text-xs sm:text-sm text-white truncate">{clip.title}</p>
                 <p className="text-xs text-gray-400 truncate">
                   {clip.channelName}
                 </p>
@@ -214,11 +364,27 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-// 검색 아이콘
+// 아이콘들
 function SearchIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
       <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+    </svg>
+  );
+}
+
+function FolderIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+    </svg>
+  );
+}
+
+function PlayCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
     </svg>
   );
 }
