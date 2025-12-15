@@ -1,4 +1,4 @@
-// 치지직 API 응답 타입
+// API 응답 타입
 export interface ChzzkApiResponse<T> {
   code: number;
   message: string | null;

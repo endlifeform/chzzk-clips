@@ -51,7 +51,7 @@ export default function Home() {
       <aside className="w-72 bg-gray-800 border-r border-gray-700 flex flex-col">
         {/* 로고 */}
         <div className="p-4 border-b border-gray-700">
-          <h1 className="text-xl font-bold text-white">치지직 클립</h1>
+          <h1 className="text-xl font-bold text-white">클립 플레이어</h1>
           <p className="text-sm text-gray-400 mt-1">클립을 모아서 연속 재생</p>
         </div>
 

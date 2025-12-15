@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: '치지직 클립 플레이어',
-  description: '치지직 클립을 그룹화하고 연속 재생하세요',
+  title: '클립 플레이어',
+  description: '클립을 그룹화하고 연속 재생하세요',
 };
 
 export default function RootLayout({

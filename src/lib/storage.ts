@@ -11,7 +11,7 @@ export interface IStorageService {
   reorderClips(groupId: string, clips: GroupClip[]): Promise<void>;
 }
 
-const STORAGE_KEY = 'chzzk-clip-groups';
+const STORAGE_KEY = 'clip-player-groups';
 
 // LocalStorage 구현체
 class LocalStorageService implements IStorageService {
