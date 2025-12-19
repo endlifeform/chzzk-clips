@@ -1,36 +1,131 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 클립 플레이어
 
-## Getting Started
+Chzzk(네이버 스트리밍 플랫폼) 클립을 검색하고 그룹화하여 연속 재생할 수 있는 웹 애플리케이션입니다.
 
-First, run the development server:
+## 주요 기능
+
+- **채널 검색**: Chzzk 채널을 검색하고 클립 목록 조회
+- **그룹 관리**: 클립을 그룹(재생목록)으로 관리
+- **연속 재생**: 셔플, 반복(전체/단일) 모드 지원
+- **키보드 단축키**: 마우스 없이 완전 제어 가능
+- **반응형 UI**: 모바일, 태블릿, 데스크톱 지원
+- **로컬 저장**: 그룹 데이터는 브라우저에 자동 저장
+
+## 기술 스택
+
+- **프레임워크**: Next.js 16 + React 19
+- **언어**: TypeScript 5
+- **상태 관리**: Zustand
+- **스타일링**: Tailwind CSS 4
+- **비디오 재생**: HLS.js
+
+## 시작하기
+
+### 설치
+
+```bash
+npm install
+```
+
+### 개발 서버 실행
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 [http://localhost:3000](http://localhost:3000)을 열어 확인합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 빌드
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+```
 
-## Learn More
+### 프로덕션 실행
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 프로젝트 구조
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── chzzk/[...path]/route.ts      # Chzzk API 프록시
+│   │   └── neonplayer/[...path]/route.ts # 비디오 스트리밍 프록시
+│   ├── layout.tsx                         # 루트 레이아웃
+│   ├── page.tsx                           # 메인 페이지
+│   └── globals.css                        # 전역 스타일
+├── components/
+│   ├── ChannelSearch.tsx                  # 채널 검색 UI
+│   ├── ClipCard.tsx                       # 클립 카드
+│   ├── ClipList.tsx                       # 클립 목록
+│   ├── GroupManager.tsx                   # 그룹 생성 UI
+│   ├── GroupList.tsx                      # 그룹 목록
+│   ├── Player.tsx                         # 비디오 플레이어
+│   ├── PlayerControls.tsx                 # 재생 컨트롤
+│   └── Playlist.tsx                       # 재생목록 사이드바
+├── stores/
+│   ├── playerStore.ts                     # 플레이어 상태
+│   └── groupStore.ts                      # 그룹 상태
+├── lib/
+│   ├── chzzk-api.ts                       # Chzzk API 클라이언트
+│   └── storage.ts                         # LocalStorage 서비스
+├── hooks/
+│   └── useKeyboardShortcuts.ts            # 키보드 단축키 훅
+└── types/
+    └── index.ts                           # 타입 정의
+```
 
-## Deploy on Vercel
+## 키보드 단축키
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| 단축키 | 기능 |
+|--------|------|
+| `Space` | 재생/일시정지 |
+| `N` | 다음 클립 |
+| `P` | 이전 클립 |
+| `S` | 셔플 토글 |
+| `R` | 반복 모드 전환 |
+| `M` | 음소거 토글 |
+| `F` | 전체화면 |
+| `↑` / `↓` | 볼륨 조절 |
+| `←` / `→` | 5초 탐색 |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 데이터 흐름
+
+### 클립 검색 및 재생
+
+```
+채널 검색 → searchChannels() API
+    ↓
+클립 목록 조회 → getClipList() API
+    ↓
+클립 선택 → getClipPlaybackUrl() → 재생 URL 획득
+    ↓
+HLS.js로 비디오 스트리밍 재생
+```
+
+### 그룹 관리
+
+```
+그룹 생성 → groupStore.createGroup()
+    ↓
+클립 추가 → addClipToGroup()
+    ↓
+LocalStorage에 자동 저장
+    ↓
+그룹 재생 → setPlaylist(group.clips)
+```
+
+## API 프록시
+
+CORS 우회를 위해 Next.js API Routes를 프록시로 사용합니다.
+
+- `/api/chzzk/*` → `https://api.chzzk.naver.com/*`
+- `/api/neonplayer/*` → `https://apis.naver.com/neonplayer/*`
+
+## 라이선스
+
+MIT
