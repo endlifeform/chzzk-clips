@@ -55,6 +55,11 @@ export interface ClipListResponse {
   page: {
     next: {
       clipUID: string;
+      readCount?: number;  // POPULAR 정렬 시 필요
+    } | null;
+    prev: {
+      clipUID: string;
+      readCount?: number;
     } | null;
   };
   data: Clip[];

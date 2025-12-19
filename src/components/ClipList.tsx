@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getClipList } from '@/lib/chzzk-api';
 import { useGroupStore } from '@/stores/groupStore';
 import { usePlayerStore } from '@/stores/playerStore';
@@ -17,71 +17,86 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
   const [clips, setClips] = useState<Clip[]>([]);
   const [selectedClips, setSelectedClips] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
-  const [page, setPage] = useState(0);
+  const [nextCursor, setNextCursor] = useState<{ clipUID: string; readCount?: number } | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const [sortType, setSortType] = useState<'LATEST' | 'POPULAR'>('LATEST');
+  const [orderType, setOrderType] = useState<'RECENT' | 'POPULAR'>('RECENT');
   const [showGroupModal, setShowGroupModal] = useState(false);
+
+  // ref로 최신 값 추적 (클로저 문제 방지)
+  const isLoadingRef = useRef(false);
 
   const { groups, addClipToGroup } = useGroupStore();
   const { setPlaylist } = usePlayerStore();
 
   // 클립 목록 불러오기
-  const loadClips = useCallback(
-    async (reset = false) => {
-      if (isLoading) return;
+  const loadClips = async (
+    cursor: { clipUID: string; readCount?: number } | null,
+    targetOrderType: 'RECENT' | 'POPULAR',
+    reset: boolean
+  ) => {
+    if (isLoadingRef.current) return;
 
-      setIsLoading(true);
-      try {
-        const currentPage = reset ? 0 : page;
-        const response = await getClipList(channelId, {
-          page: currentPage,
-          size: 20,
-          sortType,
+    isLoadingRef.current = true;
+    setIsLoading(true);
+
+    try {
+      const response = await getClipList(channelId, {
+        cursor: cursor || undefined,
+        size: 20,
+        orderType: targetOrderType,
+      });
+
+      const newClips = response.data || [];
+
+      if (reset) {
+        setClips(newClips);
+      } else {
+        // 중복 제거
+        setClips((prev) => {
+          const existingIds = new Set(prev.map((c) => c.clipUID));
+          const uniqueNewClips = newClips.filter((c) => !existingIds.has(c.clipUID));
+          return [...prev, ...uniqueNewClips];
         });
-
-        const newClips = response.data || [];
-
-        if (reset) {
-          setClips(newClips);
-          setPage(0);
-        } else {
-          setClips((prev) => [...prev, ...newClips]);
-        }
-
-        setHasMore(newClips.length === 20);
-        if (!reset) setPage((p) => p + 1);
-      } catch (error) {
-        console.error('Failed to load clips:', error);
-      } finally {
-        setIsLoading(false);
       }
-    },
-    [channelId, page, sortType, isLoading]
-  );
 
-  // 채널 변경 시 초기화
+      // 다음 페이지 커서 설정
+      setNextCursor(response.page.next);
+      setHasMore(response.page.next !== null);
+    } catch (error) {
+      console.error('Failed to load clips:', error);
+    } finally {
+      isLoadingRef.current = false;
+      setIsLoading(false);
+    }
+  };
+
+  // 채널 변경 시 초기화 및 로드
   useEffect(() => {
     setClips([]);
-    setPage(0);
+    setNextCursor(null);
     setSelectedClips(new Set());
     setHasMore(true);
+    setOrderType('RECENT');
+
+    if (channelId) {
+      loadClips(null, 'RECENT', true);
+    }
   }, [channelId]);
 
-  // 초기 로드
-  useEffect(() => {
-    if (channelId && clips.length === 0) {
-      loadClips(true);
-    }
-  }, [channelId, sortType]);
-
   // 정렬 변경
-  const handleSortChange = (newSort: 'LATEST' | 'POPULAR') => {
-    if (newSort !== sortType) {
-      setSortType(newSort);
+  const handleOrderChange = (newOrder: 'RECENT' | 'POPULAR') => {
+    if (newOrder !== orderType) {
+      setOrderType(newOrder);
       setClips([]);
-      setPage(0);
+      setNextCursor(null);
       setHasMore(true);
+      loadClips(null, newOrder, true);
     }
+  };
+
+  // 더 보기
+  const handleLoadMore = () => {
+    loadClips(nextCursor, orderType, false);
   };
 
   // 클립 선택 토글
@@ -146,9 +161,9 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
         {/* 정렬 */}
         <div className="flex gap-1 sm:gap-2 flex-shrink-0">
           <button
-            onClick={() => handleSortChange('LATEST')}
+            onClick={() => handleOrderChange('RECENT')}
             className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm transition-colors ${
-              sortType === 'LATEST'
+              orderType === 'RECENT'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
@@ -156,9 +171,9 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
             최신순
           </button>
           <button
-            onClick={() => handleSortChange('POPULAR')}
+            onClick={() => handleOrderChange('POPULAR')}
             className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm transition-colors ${
-              sortType === 'POPULAR'
+              orderType === 'POPULAR'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
@@ -229,7 +244,7 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
       {/* 더 보기 */}
       {!isLoading && hasMore && clips.length > 0 && (
         <button
-          onClick={() => loadClips(false)}
+          onClick={handleLoadMore}
           className="w-full py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
         >
           더 보기

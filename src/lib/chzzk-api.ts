@@ -57,22 +57,29 @@ export async function getChannelInfo(channelId: string): Promise<Channel> {
 
 /**
  * 채널의 클립 목록 조회
+ * cursor: page.next 객체를 그대로 전달 (clipUID, readCount 포함)
  */
 export async function getClipList(
   channelId: string,
   options: {
-    page?: number;
+    cursor?: { clipUID: string; readCount?: number };
     size?: number;
-    sortType?: 'LATEST' | 'POPULAR';
+    orderType?: 'RECENT' | 'POPULAR';
   } = {}
 ): Promise<ClipListResponse> {
-  const { page = 0, size = 20, sortType = 'LATEST' } = options;
+  const { cursor, size = 20, orderType = 'RECENT' } = options;
 
   const params = new URLSearchParams({
-    sortType: sortType === 'LATEST' ? 'RECENT' : 'POPULAR',
-    page: page.toString(),
+    orderType,
     size: size.toString(),
   });
+
+  if (cursor) {
+    params.set('clipUID', cursor.clipUID);
+    if (cursor.readCount !== undefined) {
+      params.set('readCount', cursor.readCount.toString());
+    }
+  }
 
   return fetchApi<ClipListResponse>(`/channels/${channelId}/clips?${params}`);
 }
