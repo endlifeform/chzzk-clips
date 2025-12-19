@@ -105,7 +105,7 @@ export default function Home() {
         </div>
 
         {/* 모바일: 탭별 콘텐츠 */}
-        <div className="flex-1 flex flex-col overflow-hidden lg:hidden">
+        <div className="flex-1 flex flex-col overflow-hidden lg:hidden pb-16">
           {/* 검색 탭 */}
           {mobileTab === 'search' && (
             <div className="flex-1 flex flex-col overflow-hidden">
@@ -268,7 +268,7 @@ export default function Home() {
         )}
 
         {/* 모바일 하단 탭 네비게이션 */}
-        <nav className="lg:hidden flex border-t border-gray-700 bg-gray-800">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 flex border-t border-gray-700 bg-gray-800 z-50">
           <button
             onClick={() => setMobileTab('search')}
             className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
