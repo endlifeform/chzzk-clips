@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useGroupStore } from '@/stores/groupStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { decodeSharedGroup } from '@/lib/storage';
 import ChannelSearch from '@/components/ChannelSearch';
 import ClipList from '@/components/ClipList';
 import GroupManager from '@/components/GroupManager';
@@ -11,6 +12,7 @@ import GroupList from '@/components/GroupList';
 import Player from '@/components/Player';
 import PlayerControls from '@/components/PlayerControls';
 import Playlist from '@/components/Playlist';
+import type { Group } from '@/types';
 
 type MainTab = 'search' | 'player';
 type MobileTab = 'search' | 'groups' | 'player';
@@ -22,8 +24,9 @@ export default function Home() {
   } | null>(null);
   const [mainTab, setMainTab] = useState<MainTab>('search');
   const [mobileTab, setMobileTab] = useState<MobileTab>('search');
+  const [sharedGroup, setSharedGroup] = useState<Group | null>(null);
 
-  const { loadGroups, groups, selectedGroupId, selectGroup } = useGroupStore();
+  const { loadGroups, groups, selectedGroupId, selectGroup, importGroup } = useGroupStore();
   const { playlist, currentIndex } = usePlayerStore();
   const { setPlaylist } = usePlayerStore();
 
@@ -34,6 +37,30 @@ export default function Home() {
   useEffect(() => {
     loadGroups();
   }, [loadGroups]);
+
+  // 공유 URL 처리
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareData = params.get('share');
+
+    if (shareData) {
+      const decoded = decodeSharedGroup(shareData);
+      if (decoded) {
+        setSharedGroup(decoded);
+      }
+      // URL에서 share 파라미터 제거
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  // 공유 그룹 가져오기
+  const handleImportGroup = async () => {
+    if (sharedGroup) {
+      await importGroup(sharedGroup);
+      setSharedGroup(null);
+      setMobileTab('groups');
+    }
+  };
 
   // 채널 선택 시 그룹 선택 해제
   const handleSelectChannel = (channelId: string, channelName: string) => {
@@ -299,6 +326,37 @@ export default function Home() {
         </nav>
       </main>
 
+      {/* 공유 그룹 가져오기 모달 */}
+      {sharedGroup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold text-white mb-4">공유된 그룹</h3>
+            <div className="bg-gray-700 rounded-lg p-4 mb-4">
+              <p className="font-medium text-white">{sharedGroup.title}</p>
+              <p className="text-sm text-gray-400 mt-1">
+                {sharedGroup.clips.length}개 클립
+              </p>
+            </div>
+            <p className="text-gray-300 text-sm mb-4">
+              이 그룹을 내 그룹 목록에 추가하시겠습니까?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSharedGroup(null)}
+                className="flex-1 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleImportGroup}
+                className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                가져오기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -173,3 +173,72 @@ export function getStorage(): IStorageService {
 export function setStorageImplementation(impl: IStorageService): void {
   storageInstance = impl;
 }
+
+// 그룹 공유용 인코딩 (URL-safe base64)
+export function encodeGroupForShare(group: Group): string {
+  // 필요한 데이터만 추출 (용량 최소화)
+  const shareData = {
+    t: group.title,
+    c: group.clips.map((clip) => ({
+      u: clip.clipUID,
+      v: clip.videoId,
+      n: clip.title,
+      i: clip.thumbnailUrl,
+      d: clip.duration,
+      cn: clip.channelName,
+      ci: clip.channelId,
+    })),
+  };
+
+  const json = JSON.stringify(shareData);
+  const base64 = btoa(unescape(encodeURIComponent(json)));
+  // URL-safe base64
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// 공유 데이터 디코딩
+export function decodeSharedGroup(encoded: string): Group | null {
+  try {
+    // URL-safe base64 복원
+    let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    // 패딩 복원
+    while (base64.length % 4) {
+      base64 += '=';
+    }
+
+    const json = decodeURIComponent(escape(atob(base64)));
+    const shareData = JSON.parse(json);
+
+    // Group 객체로 변환
+    const group: Group = {
+      id: crypto.randomUUID(),
+      title: shareData.t,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      clips: shareData.c.map((clip: {
+        u: string;
+        v: string;
+        n: string;
+        i: string;
+        d: number;
+        cn: string;
+        ci: string;
+      }, index: number) => ({
+        id: crypto.randomUUID(),
+        clipUID: clip.u,
+        videoId: clip.v,
+        title: clip.n,
+        thumbnailUrl: clip.i,
+        duration: clip.d,
+        channelName: clip.cn,
+        channelId: clip.ci,
+        orderIndex: index,
+      })),
+    };
+
+    return group;
+  } catch (e) {
+    console.error('Failed to decode shared group:', e);
+    return null;
+  }
+}

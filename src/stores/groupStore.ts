@@ -24,6 +24,7 @@ interface GroupState {
   removeClipFromGroup: (groupId: string, clipId: string) => Promise<void>;
   reorderClips: (groupId: string, clips: GroupClip[]) => Promise<void>;
   getSelectedGroup: () => Group | null;
+  importGroup: (group: Group) => Promise<void>;
 }
 
 export const useGroupStore = create<GroupState>((set, get) => ({
@@ -158,5 +159,15 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     const { groups, selectedGroupId } = get();
     if (!selectedGroupId) return null;
     return groups.find((g) => g.id === selectedGroupId) || null;
+  },
+
+  importGroup: async (group) => {
+    const storage = getStorage();
+    await storage.saveGroup(group);
+
+    set((state) => ({
+      groups: [...state.groups, group],
+      selectedGroupId: group.id,
+    }));
   },
 }));

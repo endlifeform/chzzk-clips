@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useGroupStore } from '@/stores/groupStore';
 import { usePlayerStore } from '@/stores/playerStore';
+import { encodeGroupForShare } from '@/lib/storage';
 import type { Group } from '@/types';
 
 export default function GroupList() {
@@ -18,6 +19,7 @@ export default function GroupList() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // 그룹 재생
   const handlePlay = (group: Group) => {
@@ -51,6 +53,23 @@ export default function GroupList() {
   const cancelEdit = () => {
     setEditingId(null);
     setEditTitle('');
+  };
+
+  // 그룹 공유
+  const handleShare = async (group: Group) => {
+    if (group.clips.length === 0) return;
+
+    const encoded = encodeGroupForShare(group);
+    const shareUrl = `${window.location.origin}?share=${encoded}`;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedId(group.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // 클립보드 실패 시 프롬프트로 표시
+      prompt('공유 URL을 복사하세요:', shareUrl);
+    }
   };
 
   if (groups.length === 0) {
@@ -120,6 +139,14 @@ export default function GroupList() {
                     <PlayIcon />
                   </button>
                   <button
+                    onClick={() => handleShare(group)}
+                    disabled={group.clips.length === 0}
+                    className="p-1.5 text-gray-400 hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="공유"
+                  >
+                    {copiedId === group.id ? <CheckIcon /> : <ShareIcon />}
+                  </button>
+                  <button
                     onClick={() => startEdit(group)}
                     className="p-1.5 text-gray-400 hover:text-white transition-colors"
                     title="편집"
@@ -166,6 +193,22 @@ function DeleteIcon() {
   return (
     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
       <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
     </svg>
   );
 }
