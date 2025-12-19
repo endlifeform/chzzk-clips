@@ -25,7 +25,7 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
   // ref로 최신 값 추적 (클로저 문제 방지)
   const isLoadingRef = useRef(false);
 
-  const { groups, addClipToGroup } = useGroupStore();
+  const { groups, addClipToGroup, createGroup } = useGroupStore();
   const { setPlaylist } = usePlayerStore();
 
   // 클립 목록 불러오기
@@ -261,6 +261,7 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
         <GroupSelectModal
           groups={groups}
           onSelect={handleAddToGroup}
+          onCreate={createGroup}
           onClose={() => setShowGroupModal(false)}
         />
       )}
@@ -272,22 +273,65 @@ export default function ClipList({ channelId, channelName }: ClipListProps) {
 function GroupSelectModal({
   groups,
   onSelect,
+  onCreate,
   onClose,
 }: {
   groups: Group[];
   onSelect: (group: Group) => void;
+  onCreate: (title: string) => Promise<Group>;
   onClose: () => void;
 }) {
+  const [isCreating, setIsCreating] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+
+  const handleCreate = async () => {
+    if (!newTitle.trim()) return;
+    const newGroup = await onCreate(newTitle.trim());
+    onSelect(newGroup);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
         <h3 className="text-lg font-bold text-white mb-4">그룹에 추가</h3>
 
-        {groups.length === 0 ? (
-          <p className="text-gray-400 text-center py-4">
-            생성된 그룹이 없습니다. 먼저 그룹을 만들어주세요.
-          </p>
+        {/* 새 그룹 만들기 */}
+        {isCreating ? (
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreate();
+                if (e.key === 'Escape') {
+                  setIsCreating(false);
+                  setNewTitle('');
+                }
+              }}
+              placeholder="그룹 이름"
+              autoFocus
+              className="flex-1 px-3 py-2 bg-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleCreate}
+              disabled={!newTitle.trim()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              생성
+            </button>
+          </div>
         ) : (
+          <button
+            onClick={() => setIsCreating(true)}
+            className="w-full p-3 mb-4 border-2 border-dashed border-gray-600 rounded-lg text-gray-400 hover:border-blue-500 hover:text-blue-400 transition-colors"
+          >
+            + 새 그룹 만들기
+          </button>
+        )}
+
+        {/* 기존 그룹 목록 */}
+        {groups.length > 0 && (
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {groups.map((group) => (
               <button
