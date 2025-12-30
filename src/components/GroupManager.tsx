@@ -37,12 +37,12 @@ export default function GroupManager() {
         onChange={(e) => setNewGroupTitle(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="새 그룹 이름..."
-        className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 text-sm focus:outline-none focus:border-blue-500"
+        className="flex-1 min-w-0 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 text-sm focus:outline-none focus:border-blue-500"
       />
       <button
         onClick={handleCreate}
         disabled={isCreating || !newGroupTitle.trim()}
-        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
       >
         {isCreating ? '생성 중...' : '생성'}
       </button>
