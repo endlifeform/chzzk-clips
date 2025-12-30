@@ -17,6 +17,22 @@ import type { Group } from '@/types';
 type MainTab = 'search' | 'player';
 type MobileTab = 'search' | 'groups' | 'player';
 
+// 데스크톱 여부를 감지하는 hook
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mediaQuery.matches);
+
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  return isDesktop;
+}
+
 export default function Home() {
   const [selectedChannel, setSelectedChannel] = useState<{
     id: string;
@@ -24,6 +40,7 @@ export default function Home() {
   } | null>(null);
   const [mainTab, setMainTab] = useState<MainTab>('search');
   const [mobileTab, setMobileTab] = useState<MobileTab>('search');
+  const isDesktop = useIsDesktop();
   const [sharedGroup, setSharedGroup] = useState<Group | null>(null);
 
   const { loadGroups, groups, selectedGroupId, selectGroup, importGroup } = useGroupStore();
@@ -175,7 +192,7 @@ export default function Home() {
           {mobileTab === 'player' && (
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="p-3 border-b border-gray-700">
-                <Player />
+                {!isDesktop && <Player />}
               </div>
               <div className="p-3 border-b border-gray-700">
                 <PlayerControls />
@@ -259,7 +276,7 @@ export default function Home() {
               <div className="flex-1 flex flex-col p-4 overflow-hidden">
                 {/* 큰 플레이어 */}
                 <div className="max-w-4xl w-full mx-auto">
-                  <Player />
+                  {isDesktop && <Player />}
                 </div>
                 {/* 플레이어 컨트롤 */}
                 <div className="max-w-4xl w-full mx-auto mt-4">
