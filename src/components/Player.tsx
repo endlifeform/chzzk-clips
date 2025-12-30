@@ -8,7 +8,6 @@ import { getClipDetail } from '@/lib/chzzk-api';
 export default function Player() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const isPlayingRef = useRef(false);
 
   const {
     playlist,
@@ -24,11 +23,6 @@ export default function Player() {
   } = usePlayerStore();
 
   const currentClip = playlist[currentIndex];
-
-  // isPlaying 상태를 ref에 동기화
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
 
   // 현재 클립의 재생 URL 가져오기
   useEffect(() => {
@@ -61,7 +55,7 @@ export default function Player() {
     };
   }, [currentClip?.clipUID, currentVideoUrl, setCurrentVideoUrl, playNext]);
 
-  // 비디오 초기화 및 재생 (HLS 또는 MP4)
+  // 비디오 초기화 (HLS 또는 MP4)
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentVideoUrl) return;
@@ -72,16 +66,14 @@ export default function Player() {
       hlsRef.current = null;
     }
 
+    // 볼륨 설정 적용
+    const { volume: vol, isMuted: muted } = usePlayerStore.getState();
+    video.volume = vol;
+    video.muted = muted;
+
     // URL에서 확장자 확인 (쿼리 파라미터 제외)
     const urlPath = currentVideoUrl.split('?')[0];
     const isHls = urlPath.endsWith('.m3u8');
-
-    const handleCanPlay = () => {
-      // ref를 사용하여 최신 isPlaying 상태 확인
-      if (isPlayingRef.current) {
-        video.play().catch((e) => console.log('Autoplay blocked:', e));
-      }
-    };
 
     if (isHls && Hls.isSupported()) {
       // HLS 스트림인 경우
@@ -96,8 +88,6 @@ export default function Player() {
       hls.loadSource(currentVideoUrl);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, handleCanPlay);
-
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
           console.error('HLS fatal error:', data);
@@ -111,16 +101,13 @@ export default function Player() {
     } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari 네이티브 HLS 지원
       video.src = currentVideoUrl;
-      video.addEventListener('canplay', handleCanPlay, { once: true });
     } else {
       // MP4 등 일반 비디오 파일
       video.src = currentVideoUrl;
       video.load();
-      video.addEventListener('canplay', handleCanPlay, { once: true });
     }
 
     return () => {
-      video.removeEventListener('canplay', handleCanPlay);
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -135,7 +122,7 @@ export default function Player() {
 
     video.volume = volume;
     video.muted = isMuted;
-  }, [volume, isMuted]);
+  }, [volume, isMuted, currentVideoUrl]);
 
   // 재생/일시정지 처리
   useEffect(() => {
